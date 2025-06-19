@@ -134,7 +134,7 @@ public:
         getline(ss, hrComments);
     }
 };
-//i was going to use vector but map gives better lookup for ID
+//I was going to use vector but map gives better lookup for ID
 map<int, Employee> employees;
 
 void deleteEmp(int id){
@@ -168,7 +168,7 @@ void deleteEmp(int id){
 //Save and load data
 void save(){
     ofstream out("Employees.txt");
-    for (auto &empPair : employees){
+    for (auto &empPair : employees){ //Don't know what to do to replace this empPair
         out << empPair.second.writeOut() <<endl;
     }
     out.close();
@@ -299,7 +299,7 @@ void HR(){
         cout << "5. Export Expense\n";
         cout << "6. Delete Employee\n";
         cout << "7. Exit\n";
-        cout << "Your Choice: ";
+        cout << "Your Choice : ";
         cin >> opt;
         cin.ignore();
 
@@ -308,22 +308,42 @@ void HR(){
             int id;
             string name, title, role;
             double salary;
-
-            cout << "Enter employee ID: ";
-            cin >> id;
+            cout << "Enter employee ID : ";
+            while (!(cin >> id) || id < 0) {
+                cout << "Invalid ID. Enter a positive number: ";
+                cin.clear();
+                cin.ignore(1000, '\n');
+            }
             cin.ignore();
             if (employees.count(id)){
                 cout << "ID already exists . Type again.\n";
                 continue;
             }
-            cout << "Enter Name: ";
+            cout << "Enter Name : ";
             getline(cin, name);
+            while (name.empty()) {
+                cout << "The Employee Name cannot be empty. Enter again : ";
+                getline(cin, name);
+            }
+
             cout << "Enter Department: ";
             getline(cin, title);
-            cout << "Enter Role: ";
+
+            cout << "Enter Role (Part-time, Intern, Full-time): ";
             getline(cin, role);
+            transform(role.begin(), role.end(), role.begin(), ::tolower);
+            while (role != "intern" && role != "part-time" && role != "full-time") {
+                cout << "Invalid role. Choose from: Part-time, Intern, Full-time: ";
+                getline(cin, role);
+                transform(role.begin(), role.end(), role.begin(), ::tolower);
+            }
+
             cout << "Enter Salary: ";
-            cin >> salary;
+            while (!(cin >> salary) || salary <= 0) {
+                cout << "Invalid salary. Enter a reasonable number: ";
+                cin.clear();
+                cin.ignore(1000, '\n');
+            }cin.ignore();
 
             emp.addEmploye(id, name, title, role, salary);
             employees[id] = emp;
@@ -331,7 +351,6 @@ void HR(){
             cout << "Employee added.\n";
         }
         else if (opt == 2){
-            //Don't know what to do to replace this empPair
             for (auto &empPair : employees){
                 empPair.second.viewEmployee();
             }
