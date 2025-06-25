@@ -1,82 +1,61 @@
 # Employee Management System
 
-Welcome to the **Employee Management System** project!  
-This is an early-stage C++ project designed to help manage employee records and basic HR operations. The current system is in its initial development phase and will evolve significantly with more features and improvements.
+A simple command-line Employee Management System that allows Admins, HR, and Employees to manage organizational data efficiently.
 
----
+## Features
 
-## 🚀 Project Vision
+- Add, view, update, and delete employee records
+- Export employee data and payslips to CSV
+- Payroll calculation and reporting
+- Secure login for Admin, HR, and Employee roles
+- Audit log for admin actions
+- HR comment tracking for employees
+- Data persistence using files
+- Input validation for all user and salary inputs
 
-The goal of this project is to create a robust, user-friendly, and secure platform for managing employee data. It is currently implemented as a single-file C++ application, but future versions will adopt a modular structure for better scalability and maintainability.
+## Upcoming Features
 
----
+- **Password Change Functionality:** Employees and HR will be able to securely change their passwords after login, enhancing account security.
+- **Multi-file Project Structure:** The codebase will be refactored from a single file to a modular, multi-file structure for easier maintenance and scalability.
 
-## ✨ Planned Features
+## Recent Updates
 
-Here are some features planned for future updates:
+- Enhanced input validation for names, roles, and salaries
+- Improved user experience with clear prompts and error handling
+- Added audit log functionality for tracking important actions
+- HR and Employee menus refactored for better usability
+- Bug fixes and code clean-up
+- Added code comments for clarity and maintainability
 
-- **User Authentication:**  
-  - Employee and HR login system  
-  - Secure password storage (hashed, not plain text)
+## Usage
 
-- **Improved File Handling:**  
-  - Better error recovery  
-  - Safer and more reliable data storage
-
-- **Graphical User Interface (GUI):**  
-  - A planned GUI version for easier and more intuitive use
-
-- **Modular Architecture:**  
-  - Second version will split components into separate files (e.g., panels and systems) for clarity and ease of maintenance
-
----
-
-## 📁 Current Status
-
-- This project is at an **early/experimental stage**.
-- All code currently resides in a single `.cpp` file for simplicity during prototyping.
-- Basic employee management features may be present (add, edit, delete, list employees), but expect rapid changes and improvements.
-
----
-
-## 🗺️ Roadmap
-
-1. Build core employee management features (**in progress**)
-2. Add user authentication and secure password storage
-3. Refactor file handling and improve error management
-4. Develop a GUI version
-5. Migrate to a modular, multi-file architecture (in a new repo: `Employee-management-system-v2`)
-
----
-
-## 🛠️ How to Run
-
-1. Clone the repository:
-    ```sh
-    git clone https://github.com/SilentSoul-cloud/Employee-management-system.git
+1. Compile the program using a C++ compiler:
     ```
-2. Compile the C++ file (replace `main.cpp` with your filename):
-    ```sh
-    g++ main.cpp -o employee_mgmt
+    g++ -o ems main.cpp
     ```
-3. Run the program:
-    ```sh
-    ./employee_mgmt
+    *(For multi-file version, use: `g++ -o ems *.cpp` or specify all `.cpp` files)*
+2. Run the executable:
     ```
+    ./ems
+    ```
+3. Follow the on-screen instructions to select your role and perform operations.
 
----
+## File Structure
 
-## 📝 Contributions
+- `main.cpp` — Main source code *(will be split into multiple files in future updates)*
+- `Employees.txt` — Persistent employee data
+- `users.txt` — User login information
+- `audit_log.txt` — Admin and HR actions log
+- `Employee_Info.csv` — Exported employee summary
+- `payslip_<id>.csv` — Individual employee payslips
 
-Contributions, suggestions, and feedback are welcome!  
-Please open an issue or pull request if you have ideas or improvements.
+## Default Admin Credentials
 
----
+- Username: admin
+- Password: admin123
 
-## 📣 Stay Tuned
+> **Note:** For security, all users should change their default passwords after first login (feature coming soon).
 
-This project will be updated frequently. Watch or star the repo to get notifications of major changes and the upcoming **second version** with a modular design and GUI.
+## License
 
----
-
-**Author:** [SilentSoul-cloud](https://github.com/SilentSoul-cloud)
+MIT License
