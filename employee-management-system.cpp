@@ -11,11 +11,14 @@
 #include <fstream>
 #include <sstream>
 #include <ctime>
+#include <random>
 #include <map>
+#include <functional>
 #include <iomanip>
 #include <algorithm>
 using namespace std;
 
+void logAction(const string &msg);
 class Employee{
 private:
     int id;
@@ -59,8 +62,9 @@ public:
         string c;
         cout << "\n--- Update Employee ---\n";
         cout << "1. Update Department\n"
-             << "2. Update Role(part-time/Intern /Full-time)" << endl
-             << "3. Update Salary" << endl;
+             << "2. Update Role(part-time/Intern /Full-time)\n"
+             << "3. Update Salary\n"
+             << "4. Back" <<endl;
         cin >> opt;
         cin.ignore();
 
@@ -76,6 +80,10 @@ public:
             cout << "New Salary: ";
             cin >> salary;
         }
+        else if (opt == 4){
+            cout << "Update cancelled.\n";
+            return;
+        }
         else{
             cout << "Invalid choice.\n";
         }
@@ -85,24 +93,28 @@ public:
         if (c == "Y" || c == "y"){
             cout << "Enter comment: ";
             getline(cin, hrComments);
-        }else cout<<"No comments";
+        }
+        else {
+            hrComments = "No comments";
+            cout << "No comments";
+        }
         logAction("Updated Employee ID " + to_string(id) + " (" + name + "): " + hrComments);
     }
 
     void payslip(){
-        double tax = salary * 0.10; // 10%
+        double tax = salary * 0.10; // 10% tax
         double net = salary - tax;
         cout << "\n--- Payslip ---\n";
-        cout << "Name: " << name << "\nTitle:" << title << "\nRole: " << role << "\nGross: $" << salary << "\nNet gross(Deducted 10%): $" << net << endl;
+        cout << "Name: " << name << "\nDepartment:" << title << "\nRole: " << role << "\nGross: $" << salary << "\nNet gross(Deducted 10%): $" << net << endl;
     }
 
     void report(){
-        ofstream out("payslip_" + to_string(id) + ".txt");
+        ofstream out("payslip_" + to_string(id) + ".csv");
         double tax = salary * 0.10;
         double net = salary - tax;
 
-        out << "Name: " << name << "\nTitle: " << title << "\nRole: " << role << "\nSalary: $" << salary
-            << "\nJoin Date: " << joinDate << "\nTax: $" << tax << "\nNet Salary: $" << net << "\n";
+        out << "Name, Department, Role, Salary, Join Date, Tax, Net Salary\n";
+        out << name << "," << title << "," << role << "," << salary << "," << joinDate << "," << tax << "," << net << "\n";
         out.close();
         cout << "Payslip exported.\n";
     }
@@ -137,34 +149,6 @@ public:
 //I was going to use vector but map gives better lookup for ID
 map<int, Employee> employees;
 
-void deleteEmp(int id){
-    string c;
-    cout << "Are you sure you want to Delete the info? (Y/N): ";
-    cin >> c;
-    cin.ignore();
-    if(c == "Y" || c == "y"){
-        if (employees.count(id)) {
-            string empName = employees[id].getName();
-            cout << "Do you want to add a comment for this Employee (y/n): ";
-            string opt;
-            cin >> opt;
-            cin.ignore();
-                    
-            string comment = "";
-            if (opt == "Y" || opt == "y"){
-                cout << "Enter comment: ";
-                getline(cin, comment);
-            }
-            logAction("Deleted Employee ID " + to_string(id) + " (" + empName + "): " + comment);
-            employees.erase(id);
-            save();
-            cout << "Employee data has been Deleted.\n";
-        } else cout << "Employee not found.\n";
-    }
-    else cout << "Delete cancelled.\n";
-}
-
-
 //Save and load data
 void save(){
     ofstream out("Employees.txt");
@@ -177,7 +161,7 @@ void save(){
 void load(){
     ifstream in("Employees.txt");
     if (!in){
-        cout << "Warning: 'Employees.txt' not found.\nStarting fresh....\n"
+        cout << "\nWarning: 'Employees.txt' not found.\nStarting fresh....\n"
              << endl;
         return;
     }
@@ -189,8 +173,137 @@ void load(){
     }
     in.close();
 }
+
+
+int lastID() {
+    ifstream in("last_id.txt");
+    if (!in) return 0;
+    int id;
+    in >> id;
+    return id;
+}
+
+void saveLastID(int id) {
+    ofstream out("last_id.txt");
+    out << id;
+}
+
+int newID(const string& role) {
+    int base = 0;
+    if (role == "employee") base = 1000;
+    else if (role == "hr") base = 500;
+    else {
+        cerr << "Error: Unknown role passed to newID().\n";
+        exit(1);
+    }
+    int lastUsed = lastID();
+    saveLastID(lastUsed + 1);
+    return base + lastUsed + 1;
+}
+
+string encp(const string &pass) {
+    hash<string> hasher;
+    return to_string(hasher(pass));
+}
+
+void addUser(const string& loginName,int id,const string& defaultPass,const string& role){
+    ofstream off("users.txt", ios::app);
+    // loginName|id|hashedPass|role|changedFlag
+    off << loginName << "|"<< id << "|"<< encp(defaultPass)<< "|"<< role<< "|0\n";
+    cout << "User " << loginName << " (ID " << id << ") created. Default pass: " << defaultPass << "\n";
+}
+
+
+void user(const string &role) {
+    int id = newID(role);
+    string name, title, r;
+    double salary;
+    cout << "\nEnter Name: "; getline(cin, name);
+
+    while (name.empty()) {
+         cout << "Name cannot be empty. Try again: "; getline(cin, name); 
+    }
+
+    cout << "Enter Department: ";
+    getline(cin, title);
+    cout << "Enter Role category (Intern/Part-time/Full-time): ";
+    getline(cin, r);
+    transform(r.begin(), r.end(), r.begin(), ::tolower);
+
+    while (r != "intern" && r != "part-time" && r != "full-time") {
+        cout << "Invalid role. Try again: ";
+        getline(cin, r);
+        transform(r.begin(), r.end(), r.begin(), ::tolower);
+    }
+    cout << "Enter Salary: ";
+    while (!(cin >> salary) || salary <= 0) {
+        cout << " Unreasonable salary. Try again: ";
+        cin.clear();
+        cin.ignore(1000, '\n');
+    }
+    cin.ignore();
+
+    Employee emp;
+    emp.addEmploye(id, name, title, r, salary);
+    employees[id] = emp;
+    save();
+
+    addUser(name, id, "Welcome123", role);
+    logAction("Created new " + role + " ID " + to_string(id) + " (" + name + ")");
+}
+
+void deleteEmp(int id){
+    auto it = employees.find(id);
+    if (it == employees.end()) {
+        cout << "Employee not found.\n";
+        return;
+    }
+
+    string empName = it->second.getName();
+    cout << "Name: " << empName << ", Role: " << it->second.getRole() << endl;
+
+    string c;
+    cout << "Are you sure you want to Delete this employee? (Y/N): ";
+    cin >> c;
+
+    if(c != "Y" && c != "y") {
+        cout << "Delete cancelled.\n";
+        return;
+    }
+
+    string opt, comment = "No comment provided";
+    cout << "Do you want to add a comment for this Employee (y/n): ";
+    cin >> opt;
+    cin.ignore();
+    
+    if (opt == "Y" || opt == "y") {
+        cout << "Enter comment: ";
+        getline(cin, comment);
+    }
+    else comment = "No comment provided";
+
+    logAction("Deleted Employee ID " + to_string(id) + " (" + empName + "). Comment: " + comment);
+    employees.erase(it);
+    save();
+    cout << "Employee data has been Deleted.\n";
+}
+
+void export_payslip(){
+    ofstream out("Employee_Info.csv");
+    out << "ID,Name,Department,Role,Salary\n";
+    for (auto &empPair : employees){
+        out << empPair.second.getId() << ","
+        << empPair.second.getName() << ","
+        << empPair.second.getTitle() << ","
+        << empPair.second.getRole() << ","
+        << fixed << setprecision(2) << empPair.second.getSalary() << endl;
+    }
+    out.close();
+    cout << "All employee data exported to 'Employee_Info.csv'.\n";
+}
+
 //for admin only
-void showAuditLog() {
+void AuditLog() {
     ifstream file("audit_log.txt");
     if (!file.is_open()) {
         cout << "\nNo audit log found yet.\n";
@@ -205,7 +318,7 @@ void showAuditLog() {
     file.close();
 }
 
-void showAllHRComments() {
+void HRComments() {
     cout << "\n--- HR Comments for All Employees ---\n";
     for (auto& pair : employees) {
         cout << "ID: " << pair.first << " | Name: " << pair.second.getName() << "\n";
@@ -220,17 +333,16 @@ void logAction(const string &msg) {
     char clock[32];
     strftime(clock, sizeof(clock), "%Y-%m-%d %H:%M:%S", ltm);
 
-    string logLine = "[" + string(clock) + "] " + msg;
+    string logLine = "[" + string(clock) + "] Action: " + msg;
     ofstream logFile("audit_log.txt", ios::app); //save
     if (logFile.is_open()) {
         logFile<<logLine <<endl;
         logFile.close();
     }
-    cout<<logLine<<endl;
 }
 
 
-void clearAllEmployeeData() {
+void clearEmpData() {
     cout << "\nAre you 100% sure you want to delete all employee records? This cannot be undone.\n";
     cout << "Type 'YES' to proceed: ";
     string confirm;
@@ -238,55 +350,17 @@ void clearAllEmployeeData() {
 
     if (confirm == "YES" || confirm =="Yes") {
         employees.clear();
-        ofstream wipe("Employees.txt", ios::trunc); //Clear all files
+        ofstream wipe("Employees.txt", ios::trunc); //Clears all files
         wipe.close();
         cout << "✔ All employee records have been wiped clean.\n";
     } else {
         cout << "Reset cancelled.\n";
     }
-}
-
-void HR_accounts() {
-    int option;
-    cout << "\n--- HR Management ---\n";
-    cout << "1. Add HR\n2. Remove HR\nChoose : ";
-    cin >> option;
-    cin.ignore();
-
-    string hrName;
-    cout << "Enter HR name: ";
-    getline(cin, hrName);
-
-    if (option == 1) {
-        ofstream out("hrs.txt", ios::app);
-        out << hrName << '\n';
-        out.close();
-        cout << "HR \""<< hrName <<"\" has been added.\n";
-    } 
-    else if (option == 2) {
-        ifstream in("hrs.txt");
-        ofstream temp("temp_hrs.txt");
-        string name;
-        int removed = 0;
-        while (getline(in, name)) {
-            if (name != hrName) {
-                temp<<name << '\n';
-            } else removed = 1;
-        }
-        in.close();
-        temp.close();
-        remove("hrs.txt");
-        rename("temp_hrs.txt", "hrs.txt");
-
-        if (removed){
-            cout << "HR \"" << hrName << "\" removed successfully.\n";
-        } else cout << "HR not found.\n";
-    } 
-    else cout << "Invalid option.\n";
+    save();
 }
 
 
-//HR menu panel
+//HR menu and handles employee data management operations
 void HR(){
     cout << "\nWelcome to Human Resource Menu\n";
     int opt;
@@ -296,7 +370,7 @@ void HR(){
         cout << "2. View All Employees\n";
         cout << "3. Update the employee Data\n";
         cout << "4. Total PayRoll\n";
-        cout << "5. Export Expense\n";
+        cout << "5. Export Employee Data\n";
         cout << "6. Delete Employee\n";
         cout << "7. Exit\n";
         cout << "Your Choice : ";
@@ -304,51 +378,8 @@ void HR(){
         cin.ignore();
 
         if (opt == 1){
-            Employee emp;
-            int id;
-            string name, title, role;
-            double salary;
-            cout << "Enter employee ID : ";
-            while (!(cin >> id) || id < 0) {
-                cout << "Invalid ID. Enter a positive number: ";
-                cin.clear();
-                cin.ignore(1000, '\n');
-            }
-            cin.ignore();
-            if (employees.count(id)){
-                cout << "ID already exists . Type again.\n";
-                continue;
-            }
-            cout << "Enter Name : ";
-            getline(cin, name);
-            while (name.empty()) {
-                cout << "The Employee Name cannot be empty. Enter again : ";
-                getline(cin, name);
-            }
-
-            cout << "Enter Department: ";
-            getline(cin, title);
-
-            cout << "Enter Role (Part-time, Intern, Full-time): ";
-            getline(cin, role);
-            transform(role.begin(), role.end(), role.begin(), ::tolower);
-            while (role != "intern" && role != "part-time" && role != "full-time") {
-                cout << "Invalid role. Choose from: Part-time, Intern, Full-time: ";
-                getline(cin, role);
-                transform(role.begin(), role.end(), role.begin(), ::tolower);
-            }
-
-            cout << "Enter Salary: ";
-            while (!(cin >> salary) || salary <= 0) {
-                cout << "Invalid salary. Enter a reasonable number: ";
-                cin.clear();
-                cin.ignore(1000, '\n');
-            }cin.ignore();
-
-            emp.addEmploye(id, name, title, role, salary);
-            employees[id] = emp;
+            user("employee");
             save();
-            cout << "Employee added.\n";
         }
         else if (opt == 2){
             for (auto &empPair : employees){
@@ -374,14 +405,7 @@ void HR(){
             cout << "Total Payroll: $" << fixed << setprecision(2) << total << endl;
         }
         else if (opt == 5){
-            double total = 0;
-            for (auto &empPair : employees){
-                total += empPair.second.getSalary();
-            }
-            ofstream out("Personnel expenses.txt");
-            out << "Total Payroll: $" <<fixed<< setprecision(2) << total << endl;
-            out.close();
-            cout << "Payroll exported to Personnel expenses.txt\n";
+            export_payslip();
         }
         else if (opt == 6){
             int id;
@@ -389,6 +413,7 @@ void HR(){
             cout << "Enter ID to delete: ";
             cin >> id;
             deleteEmp(id);
+            save();
        }
 
         else if (opt == 7){
@@ -403,25 +428,16 @@ void HR(){
 }
 
 // Employee Menu panel
-void empPanel(){
+void empPanel(int id){
     cout << "Welcome to Employee Menu\n";
     string name;
-    cout << "Enter your name: ";
-    getline(cin, name);
 
-    Employee emp;
-    int found = 0;
-    for (auto &empPair : employees){
-        if (empPair.second.getName() == name){
-            emp = empPair.second;
-            found = 1;
-            break;
-        }
-    }
-    if (!found){
-        cout << "Employee not found.\n";
+    auto it = employees.find(id);
+    if (it == employees.end()){
+        cout << "Internal error: your employee record was not found.\n";
         return;
     }
+    Employee &emp = it->second;
 
     int opt;
     do{
@@ -474,7 +490,7 @@ void empPanel(){
     } while (1);
 }
 
-//Admin panel d
+//Admin panel 
 void adminPanel() {
     int choice;
 
@@ -483,54 +499,120 @@ void adminPanel() {
         cout << "1. View Audit Log\n";
         cout << "2. View All HR Comments\n";
         cout << "3. Reset All Employee Records\n";
-        cout << "4. Add / Remove HRs\n";
-        cout << "5. Return to Main Menu\n";
+        cout << "4. Add HR\n";
+        cout << "4. Return to Main Menu\n";
         cout << "Your choice: ";
         cin >> choice;
         cin.ignore();
 
         switch (choice) {
-            case 1: showAuditLog(); break;
-            case 2: showAllHRComments(); break;
-            case 3: clearAllEmployeeData(); break;
-            case 4: HR_accounts(); break;
+            case 1: AuditLog(); break;
+            case 2: HRComments(); break;
+            case 3: clearEmpData(); break;
+            case 4: user("hr"); break;
             case 5: return;
             default: cout << "Invalid choice. Try again plz.\n";
         }
     } while (1);
 }
 
-
-// TODO: Not storing passwords need to understand the way to do it.
-// TODO: Might add employee login auth later .Needs to understand hashing
-// need to add a CSV
-
 // Main menu panel
 int main(){
     load();
     cout << "Welcome to Cloud system\n";
     int opt;
-    do
-    {
-        cout << "Select Role:\n1. Admin\n2. HR Department\n3. Employee Account\n4. Exit\nChoice: ";
-        cin >> opt;
-        cin.ignore();
-        if (opt == 1) {
-           adminPanel();
+    string role;
+    
+
+    while (true) {
+        cout << "\nSelect Role:\n" << "1. Admin\n"<< "2. HR Department\n"<< "3. Employee Account\n"<< "4. Exit\n" << "Choice: ";
+
+    if (!(cin >> opt)) {
+        cout << "Invalid input. Please enter a number.\n";
+        cin.clear();
+        cin.ignore(1000, '\n');
+        continue;
+    } 
+    cin.ignore();
+
+    if (opt == 1) role = "admin";
+    else if (opt == 2) role = "hr";
+    else if (opt == 3) role = "employee";
+    else if (opt == 4) return 0;
+    else {
+         cout << "Invalid choice.\n"; continue; 
+    }
+
+    // --- ADMIN FLOW ---
+    if (role == "admin") {
+        string user, pass;
+        cout << "Username: "; getline(cin, user);
+        cout << "Password: "; getline(cin, pass);
+
+        if (user == "admin" && pass == "admin123") {
+            cout << "\nLogged in as Admin\n\n";
+            adminPanel();
+        } else {
+            cout << "Wrong admin credentials.\n";
         }
-        else if (opt == 2){
-            HR();
+        continue;
+    }
+
+    // --- HR / EMPLOYEE FLOW ---
+    string user, pass;
+    int id;
+    cout << "Username: "; 
+    getline(cin, user);
+    cout << "User ID: ";
+    if (!(cin >> id)) {
+        cout << "Invalid ID. Please enter a number.\n";
+        cin.clear();
+        cin.ignore(1000, '\n');
+        continue;
+    }
+    cin.ignore();
+
+    cout << "Password: ";
+    getline(cin, pass);
+
+    ifstream file("users.txt");
+    if (!file.is_open()) {
+        cout << "Cannot open users.txt\n";
+        continue;
+    }
+
+    bool ok = false,changed = false;
+    string line;
+    while (getline(file, line)) {
+        string fileUser, fileID, filehesh, fileRole, fileChanged;
+        stringstream ss(line);
+        getline(ss, fileUser,   '|');
+        getline(ss, fileID,     '|');
+        getline(ss, filehesh,   '|');
+        getline(ss, fileRole,   '|');
+        getline(ss, fileChanged,'|');
+
+        if (fileUser == user && stoi(fileID) == id && fileRole == role && filehesh == encp(pass)){
+            ok = true;
+            changed = (fileChanged == "1");
             break;
         }
-        else if (opt == 3){
-            empPanel();
-            break;
-        }
-        else if (opt == 4){
-            cout << " Thank you for using this system. :-> \n";
-            cout << "Good bye";
-            return 0;
-        }
-        else cout << "Invalid role. NOT FOUND\n";
-    } while (1);
+    }
+    file.close();
+
+    if (!ok) {
+        cout << "Login failed. Check Id or Password and try again.\n";
+        continue;
+    }
+    if (!changed) {
+        cout << "You are still using the default password.\n"
+             << "Please change it when you can for safety.\n";
+    }
+
+    if (role == "hr") HR();
+    else if (role == "employee") empPanel(id);
+
+    cout << "Logged in as " << (role=="hr"?"HR":"Employee") << "\n";
+}
+
 }
